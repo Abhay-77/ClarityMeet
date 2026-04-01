@@ -3,7 +3,6 @@ from find_decisions import find_decisions
 
 if __name__ == "__main__":
 
-    # file_path = input("Enter the path to the transcript file: ").strip()
     file_path = "./tests/prod_start_meet.txt"
     transcript_entries = read_transcript(file_path)
 
@@ -11,4 +10,10 @@ if __name__ == "__main__":
     
     for entry in parsed_entries:
         if entry['type'] != 'none':
-            print(f"Content: {entry['content']}\nType: {entry['type']}\n Decision: {entry['decision']}\nAction Item: {entry['action_item']}\n{'-'*40}")
+            if entry['type'] == 'decision':
+                print(f"Decision found at {entry['timestamp']} by {entry['speaker']}: {entry['decision']}") 
+            elif entry['type'] == 'action_item':
+                print(f"Action item found at {entry['timestamp']} by {entry['speaker']}: {entry['action_item']}")
+            else:
+                print(f"Entry at {entry['timestamp']} by {entry['speaker']} has unknown type.")
+            print(f"{'-'*40}")

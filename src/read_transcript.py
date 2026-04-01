@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 import re
 
 def read_transcript(file_path):
