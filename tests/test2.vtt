@@ -1,0 +1,94 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:04.000
+Hello everyone, welcome to the meeting.
+
+00:00:04.000 --> 00:00:08.500
+Today we will discuss the project timeline.
+
+00:00:08.500 --> 00:00:12.000
+John will present the initial proposal.
+
+00:00:12.000 --> 00:00:16.000
+After that, we will open the floor for questions.
+
+00:00:16.000 --> 00:00:20.000
+Thank you all for joining.
+
+00:00:20.000 --> 00:00:45.000
+Thanks for the intro. As you know, the current target is to launch the new API by April 15th. Based on the latest sprint, we are about 70% complete.
+
+00:00:45.000 --> 00:01:10.000
+The remaining work is mainly in the authentication module — specifically the token refresh logic and rate limiting.
+
+00:01:10.000 --> 00:01:35.000
+From the testing side, we still have 12 open bugs that we need to resolve before we can go live.
+
+00:01:35.000 --> 00:02:00.000
+Sarah: John, if we stick to April 15th, we would have to ship with known issues. That feels risky.
+
+00:02:00.000 --> 00:02:25.000
+Michael: Agreed. Marketing has also raised concerns. A broken launch could damage our brand reputation.
+
+00:02:25.000 --> 00:02:50.000
+John: So what are our realistic options here?
+
+00:02:50.000 --> 00:03:15.000
+We can either delay the launch by two weeks or release with limited features and roll out the rest later.
+
+00:03:15.000 --> 00:03:40.000
+Sarah: Delaying is better than launching something unstable. A bad first impression will hurt us more in the long run.
+
+00:03:40.000 --> 00:04:05.000
+Michael: That makes sense. Are we all aligned on delaying the full launch?
+
+00:04:05.000 --> 00:04:20.000
+Yes, I agree.
+
+00:04:20.000 --> 00:04:35.000
+Agreed.
+
+00:04:35.000 --> 00:04:50.000
+Yes, let's delay.
+
+00:04:50.000 --> 00:05:15.000
+John: Okay, decision made — we will delay the full API launch to May 1st.
+
+00:05:15.000 --> 00:05:40.000
+Next, we need to make sure all critical bugs are fixed before the new deadline.
+
+00:05:40.000 --> 00:06:05.000
+Sarah: Vikram, can you take ownership of the token refresh issue?
+
+00:06:05.000 --> 00:06:30.000
+Vikram: Yes, I’ll fix it and push an update by April 10th.
+
+00:06:30.000 --> 00:06:55.000
+John: Great. Ananya, can you oversee the final end-to-end testing?
+
+00:06:55.000 --> 00:07:20.000
+Ananya: Sure, I will complete all testing by April 20th.
+
+00:07:20.000 --> 00:07:45.000
+Michael: We also need updated feature documentation from the tech team.
+
+00:07:45.000 --> 00:08:10.000
+Vikram: We’ll provide the final documentation by April 12th.
+
+00:08:10.000 --> 00:08:35.000
+John: Noted. Let’s also keep a 3-day buffer before the May 1st launch in case any last-minute bugs appear.
+
+00:08:35.000 --> 00:09:00.000
+Everyone: Sounds good.
+
+00:09:00.000 --> 00:09:30.000
+John: Alright, let me summarize: API launch delayed to May 1st, Vikram fixes token refresh by April 10th, Ananya completes testing by April 20th, and documentation delivered by April 12th.
+
+00:09:30.000 --> 00:09:50.000
+Any other concerns before we close?
+
+00:09:50.000 --> 00:10:05.000
+No, we're good.
+
+00:10:05.000 --> 00:10:25.000
+Thank you everyone. Meeting adjourned.

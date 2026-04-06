@@ -1,0 +1,70 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Space+Grotesk:wght@400;600&display=swap");
+
+:root {
+  --bg: #f7f3ef;
+  --panel: #fff7f2;
+  --drop: #fff0e7;
+  --input: #fff7f2;
+  --raw: #ffffff;
+  --raw-header: #f2e9e1;
+  --text: #3a3430;
+  --text-strong: #1f1a17;
+  --muted: #6f655e;
+  --border: rgba(58, 52, 48, 0.15);
+  --accent: #ffb020;
+  --badge: rgba(255, 176, 32, 0.2);
+  --shadow: 0 16px 30px rgba(34, 27, 23, 0.12);
+  --card-shadow: 0 12px 24px rgba(34, 27, 23, 0.08);
+  --button-shadow: 0 12px 18px rgba(255, 176, 32, 0.35);
+  --sans: "Space Grotesk", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  font: 18px/1.6 var(--sans);
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background:
+    radial-gradient(circle at top left, #fff3e2, transparent 60%),
+    radial-gradient(circle at 25% 65%, #ffe7cf, transparent 70%), var(--bg);
+}
+
+#root {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--sans);
+  color: var(--text-strong);
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: clamp(36px, 5vw, 60px);
+  margin: 0;
+}
+
+h2 {
+  font-size: 26px;
+  margin: 0;
+}
+
+h3 {
+  font-size: 18px;
+}
+
+p {
+  margin: 0;
+}

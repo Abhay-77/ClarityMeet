@@ -1,42 +1,69 @@
 import ollama
 import json
 
-prompt = (
-    "You analyze a single meeting transcript entry and return structured JSON. "
-    "Only mark a decision if a concrete choice has been made (e.g., a selected option). "
-    "If the entry presents options without a final choice, it is not a decision. "
-    "Only mark an action_item if there is a specific task to be done. "
-    "If neither applies, use type 'none'. "
-    "Return JSON with: type, decision, action_item. "
-    "For type 'decision', decision is a short summary of the decision made. "
-    "For type 'action_item', action_item is the task summary. "
-    "For type 'none', both decision and action_item are empty strings."
-)
-
 def find_decisions(transcript_entries):
-    decisions = []
-    for i in range(len(transcript_entries)):
-        entry = transcript_entries[i]
-        content = entry['content']
+    # Convert entries to clean full transcript text
+    full_text = "\n".join(
+        f"{entry['timestamp']} | {entry['speaker']} | {entry['content']}"
+        for entry in transcript_entries
+    )
 
-        response = ollama.chat(
-            model="qwen3:8b",
-            messages=[{"role": "system", "content": prompt}, {"role": "user", "content": content}],
-            format={
+    SYSTEM_PROMPT = """
+    You are an expert meeting analyst for the Meeting Intelligence Hub.
+
+    Analyze the ENTIRE transcript and return ONLY real decisions and action items.
+
+    CRITICAL RULES:
+    - Agenda items ("John will present...", "Today we will discuss...") → ignore
+    - Only mark a DECISION when the team clearly agrees ("decision made", "agreed", "yes" after proposal)
+    - Only mark an ACTION ITEM when there is a clear owner + task + deadline
+    - When someone assigns a task but another person accepts ("Yes, I'll do it"), the owner is the person who accepted
+    - ALWAYS include the deadline in the "action_item" text like: "Fix token refresh issue by April 10th"
+    - Capture EVERY decision, including the 3-day buffer
+    - Treat each distinct agreement as a separate decision. Do not merge the main delay decision with the later 3-day buffer decision.
+
+    Return ONLY a JSON array of objects with this exact schema:
+    [
+    {
+        "timestamp": "HH:MM",
+        "speaker": "speaker name",
+        "type": "decision" or "action_item",
+        "decision": "short summary of decision (empty if action_item)",
+        "action_item": "task summary INCLUDING deadline (empty if decision)",
+        "who": "responsible person (only for action_item)",
+        "when": "deadline like 2025-04-10 or ASAP (only for action_item)"
+    }
+    ]
+    If nothing found, return an empty array [].
+    """
+
+    response = ollama.chat(
+        model="qwen3:8b",
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": full_text}
+        ],
+        format={
+            "type": "array",
+            "items": {
                 "type": "object",
                 "properties": {
-                    "type": {"type": "string", "enum": ["decision", "action_item", "none"]},
+                    "timestamp": {"type": "string"},
+                    "speaker": {"type": "string"},
+                    "type": {"type": "string", "enum": ["decision", "action_item"]},
                     "decision": {"type": "string"},
-                    "action_item": {"type": "string"}
+                    "action_item": {"type": "string"},
+                    "who": {"type": "string"},
+                    "when": {"type": "string"}
                 },
-                "required": ["type", "decision", "action_item"],
-                "additionalProperties": False
+                "required": ["timestamp", "speaker", "type", "decision", "action_item", "who", "when"]
             }
-        )
-        data = json.loads(response.message.content)
+        }
+    )
 
-        transcript_entries[i]['type'] = data['type']
-        transcript_entries[i]['decision'] = data['decision']
-        transcript_entries[i]['action_item'] = data['action_item']
-    return transcript_entries
+    try:
+        items = json.loads(response["message"]["content"])
+    except (json.JSONDecodeError, KeyError):
+        items = []
 
+    return items

@@ -1,19 +1,24 @@
-from read_transcript import read_transcript
-from find_decisions import find_decisions
+from fastapi import FastAPI, File, HTTPException, UploadFile
 
-if __name__ == "__main__":
+from .find_decisions import find_decisions
+from .read_transcript import read_transcript_text
 
-    file_path = "./tests/prod_start_meet.txt"
-    transcript_entries = read_transcript(file_path)
+app = FastAPI(title="ClarityMeet API")
 
-    parsed_entries = find_decisions(transcript_entries)
-    
-    for entry in parsed_entries:
-        if entry['type'] != 'none':
-            if entry['type'] == 'decision':
-                print(f"Decision found at {entry['timestamp']} by {entry['speaker']}: {entry['decision']}") 
-            elif entry['type'] == 'action_item':
-                print(f"Action item found at {entry['timestamp']} by {entry['speaker']}: {entry['action_item']}")
-            else:
-                print(f"Entry at {entry['timestamp']} by {entry['speaker']} has unknown type.")
-            print(f"{'-'*40}")
+
+@app.post("/api/parse")
+async def parse_transcript(file: UploadFile = File(...)):
+    suffix = (file.filename or "").lower()
+    if not (suffix.endswith(".vtt") or suffix.endswith(".txt")):
+        raise HTTPException(status_code=400, detail="Only .vtt or .txt files are supported.")
+    print(f"Received file: {file.filename}")
+
+    try:
+        raw_bytes = await file.read()
+        transcript_text = raw_bytes.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise HTTPException(status_code=400, detail="File must be UTF-8 encoded.") from exc
+
+    entries = read_transcript_text(transcript_text, ".vtt" if suffix.endswith(".vtt") else ".txt")
+    parsed_entries = find_decisions(entries)
+    return {"entries": parsed_entries}
