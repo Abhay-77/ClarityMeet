@@ -8,7 +8,13 @@ function App() {
   const [decisions, setDecisions] = useState([]);
   const [actionItems, setActionItems] = useState([]);
   const [rawResponse, setRawResponse] = useState("");
+  const [meetingId, setMeetingId] = useState("");
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatQuestion, setChatQuestion] = useState("");
+  const [chatStatus, setChatStatus] = useState("idle");
+  const [chatError, setChatError] = useState("");
   const endpoint = "/api/parse";
+  const chatEndpoint = "/api/ask";
 
   const fileLabel = useMemo(() => {
     if (!file) return "Drop a .txt or .vtt file here";
@@ -27,6 +33,7 @@ function App() {
     setDecisions([]);
     setActionItems([]);
     setRawResponse("");
+    setMeetingId("");
 
     try {
       const response = await fetch(endpoint, {
@@ -43,6 +50,7 @@ function App() {
       if (contentType.includes("application/json")) {
         const data = await response.json();
         const entries = Array.isArray(data) ? data : data.entries || [];
+        setMeetingId(data.meeting_id || "");
         const decisionsOnly = entries.filter(
           (entry) => entry.type === "decision",
         );
@@ -61,6 +69,43 @@ function App() {
     } catch (caught) {
       setError(caught?.message || "Upload failed. Please try again.");
       setStatus("error");
+    }
+  };
+
+  const handleAsk = async (event) => {
+    event.preventDefault();
+    if (!chatQuestion.trim() || chatStatus === "loading") return;
+
+    const question = chatQuestion.trim();
+    setChatQuestion("");
+    setChatStatus("loading");
+    setChatError("");
+
+    setChatMessages((prev) => [...prev, { role: "user", content: question }]);
+
+    try {
+      const response = await fetch(chatEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ question }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || `Request failed (${response.status})`);
+      }
+
+      const data = await response.json();
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: data.answer || "No answer returned." },
+      ]);
+      setChatStatus("success");
+    } catch (caught) {
+      setChatError(caught?.message || "Chat request failed. Please try again.");
+      setChatStatus("error");
     }
   };
 
@@ -98,6 +143,10 @@ function App() {
           </div>
         </form>
 
+        {meetingId ? (
+          <div className="notice info">Meeting ID: {meetingId}</div>
+        ) : null}
+
         {error ? <div className="notice error">{error}</div> : null}
         {status === "success" &&
         decisions.length === 0 &&
@@ -105,6 +154,48 @@ function App() {
         rawResponse ? (
           <div className="notice info">Response received.</div>
         ) : null}
+      </section>
+
+      <section className="panel chat">
+        <div className="results-header">
+          <h2>Meeting intelligence</h2>
+          <span className="meta">Ask across stored meetings</span>
+        </div>
+
+        <div className="chat-window">
+          {chatMessages.length ? (
+            chatMessages.map((message, index) => (
+              <div
+                className={`chat-bubble ${message.role}`}
+                key={`${message.role}-${index}`}
+              >
+                <span className="chat-role">
+                  {message.role === "user" ? "You" : "ClarityMeet"}
+                </span>
+                <p>{message.content}</p>
+              </div>
+            ))
+          ) : (
+            <div className="empty">
+              Ask about decisions, owners, or rationale.
+            </div>
+          )}
+        </div>
+
+        <form className="chat-form" onSubmit={handleAsk}>
+          <input
+            className="chat-input"
+            type="text"
+            value={chatQuestion}
+            onChange={(event) => setChatQuestion(event.target.value)}
+            placeholder="What decisions did we make about shipping?"
+          />
+          <button className="primary" type="submit">
+            {chatStatus === "loading" ? "Thinking..." : "Ask"}
+          </button>
+        </form>
+
+        {chatError ? <div className="notice error">{chatError}</div> : null}
       </section>
 
       <section className="results">

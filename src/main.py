@@ -1,9 +1,16 @@
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from pydantic import BaseModel
+from uuid import uuid4
 
 from .find_decisions import find_decisions
 from .read_transcript import read_transcript_text
+from .store_search_db import ask_meeting_intelligence, save_transcript_and_extracted
 
 app = FastAPI(title="ClarityMeet API")
+
+
+class AskRequest(BaseModel):
+    question: str
 
 
 @app.post("/api/parse")
@@ -21,4 +28,24 @@ async def parse_transcript(file: UploadFile = File(...)):
 
     entries = read_transcript_text(transcript_text, ".vtt" if suffix.endswith(".vtt") else ".txt")
     parsed_entries = find_decisions(entries)
-    return {"entries": parsed_entries}
+
+    meeting_id = uuid4().hex
+    save_transcript_and_extracted(
+        meeting_id=meeting_id,
+        filename=file.filename or "transcript",
+        transcript_entries=entries,
+        extracted_list=parsed_entries,
+        original_file_bytes=raw_bytes,
+    )
+
+    return {"meeting_id": meeting_id, "entries": parsed_entries}
+
+
+@app.post("/api/ask")
+async def ask_intelligence(payload: AskRequest):
+    if not payload.question.strip():
+        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+
+    answer = ask_meeting_intelligence(payload.question.strip())
+    return {"answer": answer}
+

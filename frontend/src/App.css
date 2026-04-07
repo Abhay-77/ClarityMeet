@@ -104,6 +104,72 @@
   gap: 18px;
 }
 
+.chat {
+  display: grid;
+  gap: 16px;
+}
+
+.chat-window {
+  display: grid;
+  gap: 12px;
+  min-height: 220px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, #fff4e6, #fffdf9);
+}
+
+.chat-bubble {
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: #fff;
+  box-shadow: var(--card-shadow);
+}
+
+.chat-bubble.user {
+  background: #fff2d1;
+  border-color: rgba(255, 176, 32, 0.4);
+  justify-self: end;
+  max-width: 85%;
+}
+
+.chat-bubble.assistant {
+  background: #ffffff;
+  justify-self: start;
+  max-width: 85%;
+}
+
+.chat-role {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+  color: var(--muted);
+}
+
+.chat-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+}
+
+.chat-input {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: var(--sans);
+  background: var(--input);
+  color: var(--text-strong);
+}
+
+.chat-input:focus {
+  outline: 2px solid rgba(255, 176, 32, 0.4);
+  outline-offset: 2px;
+}
+
 .results-section {
   display: grid;
   gap: 14px;
@@ -189,5 +255,9 @@
 
   .primary {
     width: 100%;
+  }
+
+  .chat-form {
+    grid-template-columns: 1fr;
   }
 }
