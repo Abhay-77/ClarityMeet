@@ -1,5 +1,10 @@
-import ollama
-from .store_search_db import get_rag_context_for_meeting
+import os
+from dotenv import load_dotenv
+from src.cloudflare_ai import chat
+from src.store_search_db import get_rag_context_for_meeting
+
+load_dotenv()
+CF_CHAT_MODEL = os.getenv("CF_CHAT_MODEL", "@cf/meta/llama-3-8b-instruct")
 
 def generate_meeting_minutes(meeting_id: str):
     # Pull decisions + action items + relevant transcript chunks
@@ -15,9 +20,9 @@ def generate_meeting_minutes(meeting_id: str):
     {context}
     """
 
-    response = ollama.chat(
-        model="qwen3:8b",
-        messages=[{"role": "user", "content": prompt}]
+    response_text = chat(
+        [{"role": "user", "content": prompt}],
+        CF_CHAT_MODEL,
     )
 
-    return response["message"]["content"]
+    return response_text

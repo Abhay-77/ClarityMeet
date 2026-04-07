@@ -1,21 +1,19 @@
 from supabase import create_client, Client
-import ollama
 from datetime import date
 from dotenv import load_dotenv
 import os
+from src.cloudflare_ai import chat, embed
 
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+CF_CHAT_MODEL = os.getenv("CF_CHAT_MODEL", "@cf/meta/llama-3-8b-instruct")
+CF_EMBED_MODEL = os.getenv("CF_EMBED_MODEL", "@cf/baai/bge-large-en-v1.5")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 def generate_embedding(text: str) -> list[float]:
-    """Generate embedding using local Ollama model"""
-    response = ollama.embeddings(
-        model="mxbai-embed-large",
-        prompt=text
-    )
-    return response["embedding"]
+    """Generate embedding using Cloudflare Workers AI."""
+    return embed(text, CF_EMBED_MODEL)
 
 def save_transcript_and_extracted(
     meeting_id: str,
@@ -119,18 +117,14 @@ def ask_meeting_intelligence(question: str, top_k: int = 10):
     """
 
     # Call Ollama
-    response = ollama.chat(
-        model="qwen3:8b",
-        messages=[
+    response_text = chat(
+        [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": question}
-        ]
+        ],
+        CF_CHAT_MODEL,
     )
-    try:
-        answer = response["message"]["content"]
-    except KeyError:
-         answer = "Sorry, I couldn't generate an answer at this time."
-    return answer
+    return response_text or "Sorry, I couldn't generate an answer at this time."
 
 
 def get_rag_context_for_meeting(meeting_id: str, max_chunks: int = 40):

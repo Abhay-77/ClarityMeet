@@ -1,5 +1,10 @@
-import ollama
 import json
+import os
+from dotenv import load_dotenv
+from src.cloudflare_ai import chat
+
+load_dotenv()
+CF_CHAT_MODEL = os.getenv("CF_CHAT_MODEL", "@cf/meta/llama-3-8b-instruct")
 
 def find_decisions(transcript_entries):
     # Convert entries to clean full transcript text
@@ -37,32 +42,16 @@ def find_decisions(transcript_entries):
     If nothing found, return an empty array [].
     """
 
-    response = ollama.chat(
-        model="qwen3:8b",
-        messages=[
+    response_text = chat(
+        [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": full_text}
         ],
-        format={
-            "type": "array",
-            "items": {
-                "type": "object",
-                "properties": {
-                    "timestamp": {"type": "string"},
-                    "speaker": {"type": "string"},
-                    "type": {"type": "string", "enum": ["decision", "action_item"]},
-                    "decision": {"type": "string"},
-                    "action_item": {"type": "string"},
-                    "who": {"type": "string"},
-                    "when": {"type": "string"}
-                },
-                "required": ["timestamp", "speaker", "type", "decision", "action_item", "who", "when"]
-            }
-        }
+        CF_CHAT_MODEL,
     )
 
     try:
-        items = json.loads(response["message"]["content"])
+        items = json.loads(response_text)
     except (json.JSONDecodeError, KeyError):
         items = []
 

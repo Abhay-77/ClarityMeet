@@ -3,10 +3,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from uuid import uuid4
 
-from .find_decisions import find_decisions
-from .read_transcript import read_transcript_text
-from .minutes import generate_meeting_minutes
-from .store_search_db import ask_meeting_intelligence, save_transcript_and_extracted
+from src.find_decisions import find_decisions
+from src.read_transcript import read_transcript_text
+from src.minutes import generate_meeting_minutes
+from src.store_search_db import ask_meeting_intelligence, save_transcript_and_extracted
 
 app = FastAPI(title="ClarityMeet API")
 

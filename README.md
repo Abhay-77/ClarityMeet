@@ -71,6 +71,8 @@ ClarityMeet parses uploaded transcripts, extracts decisions and action items, st
 
 ### Frontend
 
+Hosted frontend: https://clarity-meet-five.vercel.app/
+
 1. Install dependencies:
    ```bash
    cd frontend
