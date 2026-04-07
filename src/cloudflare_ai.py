@@ -40,7 +40,11 @@ def chat(messages: list[dict], model: str):
 def embed(text: str, model: str) -> list[float]:
     result = _run_model(model, {"text": text})
     if "data" in result and result["data"]:
-        return result["data"][0].get("embedding", [])
+        first_item = result["data"][0]
+        if isinstance(first_item, dict):
+            return first_item.get("embedding", [])
+        if isinstance(first_item, list):
+            return first_item
     if "embedding" in result:
         return result["embedding"]
     return []

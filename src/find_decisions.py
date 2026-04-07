@@ -1,5 +1,6 @@
 import json
 import os
+import re
 from dotenv import load_dotenv
 from src.cloudflare_ai import chat
 
@@ -27,7 +28,8 @@ def find_decisions(transcript_entries):
     - Capture EVERY decision, including the 3-day buffer
     - Treat each distinct agreement as a separate decision. Do not merge the main delay decision with the later 3-day buffer decision.
 
-    Return ONLY a JSON array of objects with this exact schema:
+    Return ONLY a JSON array of objects with this exact schema.
+    Do not include any explanation, markdown, or extra text. No code fences.
     [
     {
         "timestamp": "HH:MM",
@@ -50,9 +52,38 @@ def find_decisions(transcript_entries):
         CF_CHAT_MODEL,
     )
 
+    cleaned = (response_text or "").strip()
+    if not cleaned:
+        print("⚠️ Empty response from chat model")
+        return []
+
+    if cleaned.startswith("```"):
+        cleaned = cleaned.strip("`")
+        cleaned = cleaned.replace("json", "", 1).strip()
+
+    if "[" in cleaned and "]" in cleaned:
+        cleaned = cleaned[cleaned.find("[") : cleaned.rfind("]") + 1]
+
+    cleaned = re.sub(r",\s*([\]}])", r"\1", cleaned)
+
     try:
-        items = json.loads(response_text)
-    except (json.JSONDecodeError, KeyError):
+        items = json.loads(cleaned)
+    except json.JSONDecodeError:
+        repaired = cleaned
+        last_brace = repaired.rfind("}")
+        if last_brace != -1:
+            repaired = repaired[: last_brace + 1]
+            repaired = re.sub(r",\s*$", "", repaired)
+            if not repaired.endswith("]"):
+                repaired = repaired + "]"
+            try:
+                items = json.loads(repaired)
+                return items
+            except json.JSONDecodeError:
+                pass
+
+        print("⚠️ Failed to parse model response as JSON:")
+        print(response_text)
         items = []
 
     return items
