@@ -131,3 +131,37 @@ def ask_meeting_intelligence(question: str, top_k: int = 10):
     except KeyError:
          answer = "Sorry, I couldn't generate an answer at this time."
     return answer
+
+
+def get_rag_context_for_meeting(meeting_id: str, max_chunks: int = 40):
+    chunks_resp = supabase.table("transcript_chunks") \
+        .select("meeting_id, filename, content, timestamp_start, chunk_index") \
+        .eq("meeting_id", meeting_id) \
+        .execute()
+
+    extracted_resp = supabase.table("extracted_items") \
+        .select("meeting_id, filename, data") \
+        .eq("meeting_id", meeting_id) \
+        .execute()
+
+    chunks = sorted(chunks_resp.data or [], key=lambda row: row.get("chunk_index", 0))
+    chunks = chunks[:max_chunks]
+    extracted = extracted_resp.data or []
+
+    context_parts = []
+
+    for row in extracted:
+        d = row["data"]
+        if d["type"] == "decision":
+            context_parts.append(f"Decision: {d['content']}")
+        else:
+            context_parts.append(
+                f"Action: {d.get('who')} - {d['content']} (due {d.get('when')})"
+            )
+
+    for row in chunks:
+        context_parts.append(
+            f"Conversation at {row['timestamp_start']}:\n{row['content']}"
+        )
+
+    return "\n\n".join(context_parts)

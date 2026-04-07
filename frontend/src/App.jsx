@@ -13,8 +13,13 @@ function App() {
   const [chatQuestion, setChatQuestion] = useState("");
   const [chatStatus, setChatStatus] = useState("idle");
   const [chatError, setChatError] = useState("");
-  const endpoint = "/api/parse";
-  const chatEndpoint = "/api/ask";
+  const [minutesText, setMinutesText] = useState("");
+  const [minutesStatus, setMinutesStatus] = useState("idle");
+  const [minutesError, setMinutesError] = useState("");
+  const apiBase = import.meta.env.VITE_API_BASE_URL || "";
+  const endpoint = `${apiBase}/api/parse`;
+  const chatEndpoint = `${apiBase}/api/ask`;
+  const minutesEndpoint = `${apiBase}/api/minutes`;
 
   const fileLabel = useMemo(() => {
     if (!file) return "Drop a .txt or .vtt file here";
@@ -51,6 +56,9 @@ function App() {
     setActionItems([]);
     setRawResponse("");
     setMeetingId("");
+    setMinutesText("");
+    setMinutesStatus("idle");
+    setMinutesError("");
 
     try {
       const response = await fetch(endpoint, {
@@ -86,6 +94,37 @@ function App() {
     } catch (caught) {
       setError(caught?.message || "Upload failed. Please try again.");
       setStatus("error");
+    }
+  };
+
+  const handleGenerateMinutes = async () => {
+    if (!meetingId || minutesStatus === "loading") return;
+
+    setMinutesStatus("loading");
+    setMinutesError("");
+
+    try {
+      const response = await fetch(minutesEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ meeting_id: meetingId }),
+      });
+
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || `Request failed (${response.status})`);
+      }
+
+      const data = await response.json();
+      setMinutesText(data.minutes || "No minutes returned.");
+      setMinutesStatus("success");
+    } catch (caught) {
+      setMinutesError(
+        caught?.message || "Minutes generation failed. Please try again.",
+      );
+      setMinutesStatus("error");
     }
   };
 
@@ -164,6 +203,21 @@ function App() {
           <div className="notice info">Meeting ID: {meetingId}</div>
         ) : null}
 
+        <div className="controls minutes-actions">
+          <button
+            className="primary"
+            type="button"
+            onClick={handleGenerateMinutes}
+            disabled={!meetingId || minutesStatus === "loading"}
+          >
+            {minutesStatus === "loading" ? "Generating..." : "Generate minutes"}
+          </button>
+        </div>
+
+        {minutesError ? (
+          <div className="notice error">{minutesError}</div>
+        ) : null}
+
         {error ? <div className="notice error">{error}</div> : null}
         {status === "success" &&
         decisions.length === 0 &&
@@ -172,6 +226,16 @@ function App() {
           <div className="notice info">Response received.</div>
         ) : null}
       </section>
+
+      {minutesText ? (
+        <section className="panel minutes-panel">
+          <div className="results-header">
+            <h2>Meeting minutes</h2>
+            <span className="meta">Generated from the latest upload</span>
+          </div>
+          <div className="minutes-content">{renderMessage(minutesText)}</div>
+        </section>
+      ) : null}
 
       <section className="panel chat">
         <div className="results-header">

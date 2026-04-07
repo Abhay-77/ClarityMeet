@@ -54,6 +54,10 @@
   justify-content: flex-end;
 }
 
+.minutes-actions {
+  margin-top: 16px;
+}
+
 .primary {
   border: none;
   border-radius: 14px;
@@ -168,6 +172,21 @@
 .chat-input:focus {
   outline: 2px solid rgba(255, 176, 32, 0.4);
   outline-offset: 2px;
+}
+
+.minutes-panel {
+  display: grid;
+  gap: 16px;
+}
+
+.minutes-content {
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: #fffdf7;
+  color: var(--text-strong);
+  line-height: 1.65;
+  box-shadow: var(--card-shadow);
 }
 
 .results-section {
