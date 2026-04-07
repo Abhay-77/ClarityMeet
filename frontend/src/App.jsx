@@ -21,6 +21,23 @@ function App() {
     return `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
   }, [file]);
 
+  const renderMessage = (content) => {
+    const segments = content.split(/(\*\*[^*]+\*\*)/g);
+    return segments.map((segment, index) => {
+      if (segment.startsWith("**") && segment.endsWith("**")) {
+        return <strong key={`bold-${index}`}>{segment.slice(2, -2)}</strong>;
+      }
+
+      const lines = segment.split("\n");
+      return lines.map((line, lineIndex) => (
+        <span key={`text-${index}-${lineIndex}`}>
+          {line}
+          {lineIndex < lines.length - 1 ? <br /> : null}
+        </span>
+      ));
+    });
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!file || status === "loading") return;
@@ -172,7 +189,7 @@ function App() {
                 <span className="chat-role">
                   {message.role === "user" ? "You" : "ClarityMeet"}
                 </span>
-                <p>{message.content}</p>
+                <p>{renderMessage(message.content)}</p>
               </div>
             ))
           ) : (

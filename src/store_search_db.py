@@ -9,21 +9,30 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+def generate_embedding(text: str) -> list[float]:
+    """Generate embedding using local Ollama model"""
+    response = ollama.embeddings(
+        model="mxbai-embed-large",
+        prompt=text
+    )
+    return response["embedding"]
+
 def save_transcript_and_extracted(
     meeting_id: str,
     filename: str,
-    transcript_entries: list,          # your list of {"timestamp", "speaker", "content"}
-    extracted_list: list,              # your extracted decisions/action items
+    transcript_entries: list,      # list of {"timestamp", "speaker", "content"}
+    extracted_list: list,          # your extracted decisions/action items
     original_file_bytes: bytes = None
 ):
-    # 1. Optional: Store original file in Supabase Storage
+    # Optional: Upload original file to storage
     # if original_file_bytes:
     #     supabase.storage.from_("transcripts").upload(
     #         path=f"{meeting_id}/{filename}",
-    #         file=original_file_bytes
+    #         file=original_file_bytes,
+    #         file_options={"content-type": "text/plain"}
     #     )
 
-    # 2. Save extracted items (structured)
+    # 1. Save structured decisions & action items
     for item in extracted_list:
         data = {
             "type": item["type"],
@@ -41,66 +50,80 @@ def save_transcript_and_extracted(
             "data": data
         }).execute()
 
-    # 3. Save chunked transcript (this gives us the "why" context)
-    CHUNK_SIZE = 8   # ~8 lines per chunk (adjust as needed)
+    # 2. Save transcript chunks WITH embeddings
+    CHUNK_SIZE = 8
     for i in range(0, len(transcript_entries), CHUNK_SIZE):
-        chunk = transcript_entries[i:i+CHUNK_SIZE]
+        chunk = transcript_entries[i:i + CHUNK_SIZE]
         chunk_text = "\n".join(
             f"{e['timestamp']} | {e['speaker']} | {e['content']}" for e in chunk
         )
+        
+        # Generate embedding
+        embedding = generate_embedding(chunk_text)
+
         supabase.table("transcript_chunks").insert({
             "meeting_id": meeting_id,
             "filename": filename,
             "chunk_index": i // CHUNK_SIZE,
             "content": chunk_text,
             "timestamp_start": chunk[0]["timestamp"],
-            "timestamp_end": chunk[-1]["timestamp"]
+            "timestamp_end": chunk[-1]["timestamp"],
+            "embedding": embedding
         }).execute()
 
-    print(f"✅ Saved {len(extracted_list)} extracted items + {len(transcript_entries)//CHUNK_SIZE} transcript chunks")
+    print(f"✅ Saved {len(extracted_list)} items + {len(transcript_entries)//CHUNK_SIZE} embedded chunks for {filename}")
 
-def ask_meeting_intelligence(question: str, top_k: int = 8):
-    # Hybrid retrieval: structured items + transcript chunks
-    # First get relevant decisions/actions
-    extracted_resp = supabase.table("extracted_items") \
-        .select("meeting_id, filename, data") \
-        .or_(f"data->>content.ilike.%{question}%") \
-        .execute()
+def ask_meeting_intelligence(question: str, top_k: int = 10):
+    # Generate embedding for the user question
+    question_embedding = generate_embedding(question)
 
-    # Then get relevant conversation chunks
-    chunks_resp = supabase.table("transcript_chunks") \
-        .select("meeting_id, filename, content, timestamp_start") \
-        .ilike("content", f"%{question}%") \
-        .execute()
-
-    context = []
+    context_parts = []
     citations = []
 
-    # Add structured decisions first
-    extracted_rows = (extracted_resp.data or [])[:top_k]
-    chunk_rows = (chunks_resp.data or [])[:top_k]
+    # 1. Semantic search on transcript chunks (best for "why" questions)
+    chunks_resp = supabase.rpc("match_chunks", {
+        "query_embedding": question_embedding,
+        "match_threshold": 0.75,
+        "match_count": top_k
+    }).execute()
 
-    for row in extracted_rows:
-        d = row["data"]
-        context.append(f"[{row['meeting_id']}] {d['type'].upper()}: {d['content']}")
-        citations.append(f"• {row['meeting_id']} ({row['filename']})")
-
-    # Add surrounding conversation for "why" reasoning
-    for row in chunk_rows:
-        context.append(f"Conversation from {row['meeting_id']} at {row['timestamp_start']}:\n{row['content']}")
+    for row in chunks_resp.data:
+        context_parts.append(
+            f"Conversation from {row['meeting_id']} at {row['timestamp_start']}:\n{row['content']}"
+        )
         citations.append(f"• {row['meeting_id']} – {row['filename']} – {row['timestamp_start']}")
+
+    # 2. Also pull structured decisions/action items (fast exact matches)
+    extracted_resp = supabase.table("extracted_items") \
+        .select("meeting_id, filename, data") \
+        .limit(top_k).execute()
+
+    for row in extracted_resp.data:
+        d = row["data"]
+        if d["type"] == "decision":
+            context_parts.append(f"Decision from {row['meeting_id']}: {d['content']}")
+        else:
+            context_parts.append(f"Action by {d.get('who')} from {row['meeting_id']}: {d['content']} (due {d.get('when')})")
+
+    context = "\n\n".join(context_parts)
 
     system_prompt = f"""
     You are the Meeting Intelligence Hub assistant.
-    Use the context below to answer. Pay special attention to the conversation chunks when the user asks "why" or "what led to".
-    Always cite the meeting and timestamp.
+    Answer using ONLY the provided context.
+    For "why" questions, use the conversation chunks to explain the reasoning behind decisions.
+    Always cite the meeting and timestamp when possible.
+    If you cannot find the answer, say "I couldn't find that information in any uploaded meeting."
+
+    Context:
+    {context}
     """
 
+    # Call Ollama
     response = ollama.chat(
         model="qwen3:8b",
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Question: {question}\n\nContext:\n" + "\n\n".join(context)}
+            {"role": "user", "content": question}
         ]
     )
     try:
