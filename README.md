@@ -19,7 +19,7 @@ ClarityMeet parses uploaded transcripts, extracts decisions and action items, st
 - Frontend: React (Vite)
 - Database: Supabase (PostgreSQL + pgvector)
 - Storage: Supabase Storage (optional)
-- AI models: Ollama (qwen3:8b, mxbai-embed-large)
+- AI models: Cloudflare Workers AI (@cf/meta/llama-3-8b-instruct, @cf/baai/bge-large-en-v1.5)
 
 ## Database Schema
 
@@ -59,10 +59,10 @@ ClarityMeet parses uploaded transcripts, extracts decisions and action items, st
    SUPABASE_URL=your_supabase_url
    SUPABASE_KEY=your_supabase_key
    ```
-4. Ensure Ollama is running and pull required models:
+4. Set Cloudflare Workers AI model IDs (optional overrides):
    ```bash
-   ollama pull qwen3:8b
-   ollama pull mxbai-embed-large
+   CF_CHAT_MODEL=@cf/meta/llama-3-8b-instruct
+   CF_EMBED_MODEL=@cf/baai/bge-large-en-v1.5
    ```
 5. Start the API:
    ```bash
